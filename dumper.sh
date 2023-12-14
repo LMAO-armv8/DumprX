@@ -199,7 +199,10 @@ else
 	fi
 	if [[ -d "${FILEPATH}" || "${EXTENSION}" == "" ]]; then
 		printf "Directory Detected.\n"
-		if find "${FILEPATH}" -maxdepth 1 -type f | grep -v "compatibility.zip" | grep -q ".*.tar$\|.*.zip\|.*.rar\|.*.7z"; then
+  		if find "${FILEPATH}" -maxdepth 1 -type f | grep -q -e ".*\.tar\.md5$"; then
+        		printf "Found *.tar.md5 files. Copying them to %s\n" "${OUTDIR}"
+        		cp "${FILEPATH}"/*.tar.md5 "${OUTDIR}/"
+		elif find "${FILEPATH}" -maxdepth 1 -type f | grep -v "compatibility.zip" | grep -q ".*.tar$\|.*.zip\|.*.rar\|.*.7z"; then
 			printf "Supplied Folder Has Compressed Archive That Needs To Re-Load\n"
 			# Set From Download Directory
 			ArcPath=$(find "${INPUTDIR}"/ -maxdepth 1 -type f \( -name "*.tar" -o -name "*.zip" -o -name "*.rar" -o -name "*.7z" \) -print | grep -v "compatibility.zip")
