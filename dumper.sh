@@ -639,6 +639,34 @@ elif 7z l -ba "${FILEPATH}" | grep tar.md5 | gawk '{print $NF}' | grep -q AP_ 2>
 	if [[ -f system.img.ext4 ]]; then
 		find "${TMPDIR}" -maxdepth 1 -type f -name "*.img.ext4" | rename 's/.img.ext4/.img/g' > /dev/null 2>&1
 	fi
+ 	file_type=$(file -b "${TMPDIR}/system.img" | awk '{print $1}')
+ 	if [[ "${file_type}" == "EROFS" ]]; then
+ 		# Handling EROFS Images, which can't be handled by 7z.
+		echo "Extraction Failed my 7z"
+		if [ -f $p.img ] && [ $p != "modem" ]; then
+			echo "Couldn't extract $p partition by 7z. Using fsck.erofs."
+			rm -rf "${p}"/*
+			"${FSCK_EROFS}" --extract="$p" "$p".img
+			if [ $? -eq 0 ]; then
+				rm -fv "$p".img > /dev/null 2>&1
+			else
+				echo "Couldn't extract $p partition by fsck.erofs. Using mount loop"
+				sudo mount -o loop -t auto "$p".img "$p"
+				mkdir "${p}_"
+				sudo cp -rf "${p}/"* "${p}_"
+				sudo umount "${p}"
+				sudo cp -rf "${p}_/"* "${p}"
+				sudo rm -rf "${p}_"
+				if [ $? -eq 0 ]; then
+					rm -fv "$p".img > /dev/null 2>&1
+				else
+					echo "Couldn't extract $p partition. It might use an unsupported filesystem."
+					echo "For EROFS: make sure you're using Linux 5.4+ kernel."
+					echo "For F2FS: make sure you're using Linux 5.15+ kernel."
+				fi
+			fi
+		fi
+  	fi
 	if [[ ! -f system.img ]]; then
 		printf "Extract failed\n"
 		rm -rf "${TMPDIR}" && exit 1
